@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciamento de Estoque</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: auto;
+            background: #fff;
+            padding: 20px 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        h1, h2 {
+            color: #2c3e50;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        input[type="text"],
+        input[type="number"] {
+            width: calc(100% - 20px);
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        button {
+            background-color: #3498db;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #2980b9;
+        }
+
+        #produtoTable {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        #produtoTable th,
+        #produtoTable td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+
+        #produtoTable th {
+            background-color: #ecf0f1;
+            font-weight: bold;
+        }
+
+        .acoes button {
+            margin: 0 5px;
+            padding: 5px 8px;
+        }
+
+        .btn-remover {
+            background-color: #e74c3c;
+        }
+
+        .btn-remover:hover {
+            background-color: #c0392b;
+        }
+
+        .btn-atualizar {
+            background-color: #f39c12;
+        }
+        
+        .btn-atualizar:hover {
+            background-color: #e67e22;
+        }
+
+        #message {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 1em;
+            font-weight: bold;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📦 Gerenciamento de Estoque</h1>
+
+        <h2>Adicionar Novo Produto</h2>
+        <form id="form-adicionar">
+            <div class="form-group">
+                <label for="add-nome">Nome do Produto:</label>
+                <input type="text" id="add-nome" required>
+            </div>
+            <div class="form-group">
+                <label for="add-preco">Preço (R$):</label>
+                <input type="number" id="add-preco" step="0.01" required>
+            </div>
+            <div class="form-group">
+                <label for="add-estoque">Quantidade em Estoque:</label>
+                <input type="number" id="add-estoque" required>
+            </div>
+            <button type="submit">Adicionar Produto</button>
+        </form>
+
+        <hr style="margin: 30px 0;">
+
+        <h2>Estoque Atual</h2>
+        <table id="produtoTable">
+            <thead>
+                <tr>
+                    <th>Nome</th>
+                    <th>Preço (R$)</th>
+                    <th>Quantidade</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody id="produto-lista">
+                </tbody>
+        </table>
+        <div id="message"></div>
+    </div>
+
+    <script>
+        // URL da sua API
+        const API_URL = 'http://127.0.0.1:5000/produtos';
+
+        // Elementos do DOM
+        const formAdicionar = document.getElementById('form-adicionar');
+        const produtoLista = document.getElementById('produto-lista');
+        const messageDiv = document.getElementById('message');
+
+        // Função para exibir mensagem
+        function showMessage(text, isError = false) {
+            messageDiv.textContent = text;
+            messageDiv.style.color = isError ? 'red' : 'green';
+            setTimeout(() => {
+                messageDiv.textContent = '';
+            }, 3000); // Limpa a mensagem após 3 segundos
+        }
+
+        // Função para buscar e exibir os produtos
+        async function fetchProdutos() {
+            try {
+                const response = await fetch(API_URL);
+                if (!response.ok) {
+                    throw new Error('Erro ao carregar produtos');
+                }
+                const produtos = await response.json();
+                renderProdutos(produtos);
+            } catch (error) {
+                console.error('Erro:', error);
+                showMessage('Erro ao carregar o estoque.', true);
+            }
+        }
+
+        // Função para renderizar os produtos na tabela
+        function renderProdutos(produtos) {
+            produtoLista.innerHTML = ''; // Limpa a tabela antes de adicionar novos dados
+            if (produtos.mensagem) {
+                const row = document.createElement('tr');
+                const cell = document.createElement('td');
+                cell.colSpan = 4;
+                cell.textContent = produtos.mensagem;
+                cell.style.textAlign = 'center';
+                cell.style.fontStyle = 'italic';
+                row.appendChild(cell);
+                produtoLista.appendChild(row);
+                return;
+            }
+
+            produtos.forEach(produto => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${produto.Nome}</td>
+                    <td>R$ ${produto.Preço.toFixed(2)}</td>
+                    <td>${produto.Estoque}</td>
+                    <td class="acoes">
+                        <button class="btn-atualizar" onclick="atualizarProduto('${produto.Nome}')">Atualizar</button>
+                        <button class="btn-remover" onclick="removerProduto('${produto.Nome}')">Remover</button>
+                    </td>
+                `;
+                produtoLista.appendChild(row);
+            });
+        }
+
+        // Evento para adicionar um novo produto
+        formAdicionar.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const nome = document.getElementById('add-nome').value;
+            const preco = parseFloat(document.getElementById('add-preco').value);
+            const estoque = parseInt(document.getElementById('add-estoque').value);
+
+            try {
+                const response = await fetch(`${API_URL}/cadastrar`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        nome: nome,
+                        preco: preco,
+                        estoque: estoque
+                    })
+                });
+                const resultado = await response.json();
+                if (response.ok) {
+                    showMessage(`Produto '${resultado.Nome}' adicionado com sucesso!`);
+                    formAdicionar.reset();
+                    fetchProdutos(); // Atualiza a lista
+                } else {
+                    throw new Error(resultado.erro || 'Erro ao adicionar produto.');
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                showMessage(error.message, true);
+            }
+        });
+
+        // Função para remover um produto
+        async function removerProduto(nome) {
+            if (!confirm(`Tem certeza que deseja remover o produto '${nome}'?`)) {
+                return;
+            }
+            try {
+                const response = await fetch(`${API_URL}/${nome}`, {
+                    method: 'DELETE'
+                });
+                const resultado = await response.json();
+                if (response.ok) {
+                    showMessage(resultado.mensagem);
+                    fetchProdutos(); // Atualiza a lista
+                } else {
+                    throw new Error(resultado.erro || 'Erro ao remover produto.');
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                showMessage(error.message, true);
+            }
+        }
+
+        // Função para atualizar um produto (simplesmente pedindo novos valores)
+        async function atualizarProduto(nome) {
+            const novoPreco = parseFloat(prompt(`Digite o novo preço para '${nome}':`));
+            const novoEstoque = parseInt(prompt(`Digite a nova quantidade em estoque para '${nome}':`));
+
+            if (isNaN(novoPreco) && isNaN(novoEstoque)) {
+                showMessage("Nenhum valor válido para atualização foi fornecido.", true);
+                return;
+            }
+
+            if (!isNaN(novoPreco)) {
+                await atualizarCampo(nome, 'preco', novoPreco);
+            }
+            if (!isNaN(novoEstoque)) {
+                await atualizarCampo(nome, 'estoque', novoEstoque);
+            }
+            fetchProdutos(); // Atualiza a lista após as operações
+        }
+        
+        async function atualizarCampo(nome, campo, valor) {
+            try {
+                const response = await fetch(`${API_URL}/atualizar_${campo}/${nome}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ [campo]: valor })
+                });
+                const resultado = await response.json();
+                if (response.ok) {
+                    showMessage(resultado.mensagem);
+                } else {
+                    throw new Error(resultado.erro || `Erro ao atualizar o ${campo}.`);
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                showMessage(error.message, true);
+            }
+        }
+
+        // Carrega a lista de produtos quando a página é carregada
+        document.addEventListener('DOMContentLoaded', fetchProdutos);
+    </script>
+</body>
+</html>
