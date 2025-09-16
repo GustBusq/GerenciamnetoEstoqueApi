@@ -1,11 +1,12 @@
 from flask import Flask, jsonify, request
-from flask_cors import CORS # Importe a extensão CORS
+from flask_cors import CORS
 
+# Crie a instância do Flask
 app = Flask(__name__)
-CORS(app) # Habilite o CORS para todas as rotas da sua aplicação
 
-# O resto do seu código permanece o mesmo
-# ...
+# Habilite o CORS para permitir requisições de outras origens
+CORS(app)
+
 # Seu estoque (uma lista de dicionários)
 estoque = []
 
@@ -53,7 +54,7 @@ def adicionar_produto_api():
     dados = request.get_json()
     if not dados or 'nome' not in dados or 'preco' not in dados or 'estoque' not in dados:
         return jsonify({"erro": "Dados incompletos. 'nome', 'preco' e 'estoque' são obrigatórios."}), 400
-
+    
     produto_cadastrado = cadastrar_produto(dados['nome'], dados['preco'], dados['estoque'])
     return jsonify(produto_cadastrado), 201
 
@@ -69,7 +70,7 @@ def atualizar_estoque_api(nome_produto):
     dados = request.get_json()
     if 'estoque' not in dados:
         return jsonify({"erro": "O campo 'estoque' é obrigatório para a atualização."}), 400
-
+    
     resultado = atualizar_estoque(nome_produto, dados['estoque'])
     if isinstance(resultado, tuple):
         return jsonify(resultado[0]), resultado[1]
@@ -80,11 +81,8 @@ def atualizar_preco_api(nome_produto):
     dados = request.get_json()
     if 'preco' not in dados:
         return jsonify({"erro": "O campo 'preco' é obrigatório para a atualização."}), 400
-
+    
     resultado = atualizar_preco(nome_produto, dados['preco'])
     if isinstance(resultado, tuple):
         return jsonify(resultado[0]), resultado[1]
     return jsonify(resultado)
-
-if __name__ == '__main__':
-    app.run(debug=True)
